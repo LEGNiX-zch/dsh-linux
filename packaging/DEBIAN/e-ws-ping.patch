@@ -1,0 +1,51 @@
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -175,6 +175,7 @@
+ 	open;
+ 	failure;
+ 	heartbeatIntervalMs;
++	pingEnabled;
+ 	streamInboxBytes;
+ 	server = new WebSocketServer({ noServer: true });
+ 	connections = /* @__PURE__ */ new Set();
+@@ -186,10 +187,11 @@
+ 	* @param heartbeatIntervalMs - interval between WebSocket Ping control frames.
+ 	* @param streamInboxBytes - buffered uplink frame bytes one logical stream may hold before it fails.
+ 	*/
+-	constructor(open, failure, heartbeatIntervalMs, streamInboxBytes) {
++	constructor(open, failure, heartbeatIntervalMs, streamInboxBytes, pingEnabled) {
+ 		this.open = open;
+ 		this.failure = failure;
+ 		this.heartbeatIntervalMs = heartbeatIntervalMs;
++		this.pingEnabled = pingEnabled === true;
+ 		this.streamInboxBytes = streamInboxBytes;
+ 	}
+ 	/**
+@@ -245,8 +247,8 @@
+ 					});
+ 					continue;
+ 				}
+-				this.missedHeartbeats.set(socket, missed + 1);
+-				socket.ping();
++				if (this.pingEnabled) this.missedHeartbeats.set(socket, missed + 1);
++				if (this.pingEnabled) socket.ping();
+ 			}
+ 		}, this.heartbeatIntervalMs);
+ 		this.heartbeatTimer.unref();
+@@ -595,6 +597,7 @@
+ 	static inject = ["typert"];
+ 	static Config = z.object({
+ 		websocketHeartbeatIntervalMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).default(DEFAULT_WEBSOCKET_HEARTBEAT_INTERVAL_MS),
++		websocketPingEnabled: z.boolean().default(false),
+ 		streamInboxBytes: z.number().step(1).min(1).default(DEFAULT_STREAM_INBOX_BYTES)
+ 	});
+ 	/** Carrier adapter shared by the WebSocket mux and local Host transports. */
+@@ -625,7 +628,7 @@
+ 		});
+ 		ctx.inject(["connection", "webServer"], (webCtx) => {
+ 			const listen = () => {
+-				const mux = new RemoteStreamMuxServer((endpoint, payload, uplink, peer, control) => this.openWireStream(endpoint, payload, uplink, peer, control.signal, control), this.wireStream.failure, resolved.websocketHeartbeatIntervalMs, resolved.streamInboxBytes);
++				const mux = new RemoteStreamMuxServer((endpoint, payload, uplink, peer, control) => this.openWireStream(endpoint, payload, uplink, peer, control.signal, control), this.wireStream.failure, resolved.websocketHeartbeatIntervalMs, resolved.streamInboxBytes, resolved.websocketPingEnabled);
+ 				webCtx.effect(function* () {
+ 					yield () => mux.close();
+ 					const route = {

@@ -1,0 +1,11 @@
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -231,7 +231,7 @@
+ 		args: [
+ 			"--no-open",
+ 			"--port",
+-			"19387"
++			String(process.env.DSH_PORT || 19387)
+ 		],
+ 		...process.argv[5] === void 0 ? {} : { packageManager: {
+ 			command: process.execPath,

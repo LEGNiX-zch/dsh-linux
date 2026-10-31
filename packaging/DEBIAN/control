@@ -1,0 +1,55 @@
+Package: deepseek-harness
+Version: 0.2.1
+Section: utils
+Priority: optional
+Architecture: arm64
+Installed-Size: 479944
+Maintainer: DeepSeek Harness Linux Port <port@localhost>
+Depends: libc6, libgtk-3-0, libnss3, libnspr4, libatk1.0-0, libatk-bridge2.0-0, libcups2, libdrm2, libxkbcommon0, libxcomposite1, libxdamage1, libxfixes3, libxrandr2, libgbm1, libpango-1.0-0, libcairo2, libasound2, libatspi2.0-0, libx11-6, libxext6, libexpat1
+Description: DeepSeek Harness desktop client (native linux-arm64)
+ A native linux-arm64 rebuild of the DeepSeek Harness desktop client.
+ .
+ The upstream product ships a Windows Electron shell plus a bundled Node
+ service. This package replaces the Windows shell with an Electron main
+ process compiled into the official linux-arm64 runtime, and runs the
+ bundled service through the same Electron binary in ELECTRON_RUN_AS_NODE
+ mode. Nothing here is emulated: there is no Wine, no Box64, no QEMU and no
+ hangover layer, and no Windows executable is ever loaded.
+ .
+ The renderer is served by the bundled service on a loopback HTTP origin
+ and the launch cookie is seeded into the Electron session before the first
+ navigation, so the desktop UI authenticates against its own backend
+ without a manual login step.
+ .
+ If the default loopback port 19387 is already held by a stale backend (for
+ example an orphan left behind by an earlier PRoot session), the launcher
+ probes forward for the next free port and pins the chosen port through
+ DSH_PORT, so the bundled service and the Electron shell always agree on the
+ same origin. Starting the app twice therefore no longer leaves a window
+ stuck on "reconnecting".
+ .
+ Suitable for PRoot / proot-distro containers inside Termux-like Android
+ environments, where no GPU nodes and no user namespaces are available.
+ .
+ This build also disables the WebSocket Ping control frame on the
+ multiplexed Remote stream endpoint (websocketPingEnabled defaults to
+ false). Inside PRoot the Chromium renderer aborts the TCP connection with
+ code 1006 as soon as it receives a Ping frame instead of replying with a
+ Pong, which made the desktop UI print "connection lost" and reconnect
+ every two seconds forever. Application traffic, stream multiplexing and
+ peer-scope teardown are unchanged; only the keepalive probe is off.
+ .
+ The desktop host now also honours the DSH_PORT environment variable, so
+ the launcher port fallback (when 19387 is already taken by an orphan
+ backend inside PRoot) is actually propagated to the embedded host
+ instead of being hardcoded to 19387.
+ .
+ The optional native addon subpackage @deepseek-ai/node-addon-system-linux-arm64
+ was missing from earlier builds, which made any workspace or session that
+ needs an exclusive file lock fail at runtime with "Cannot find module
+ '@deepseek-ai/node-addon-system-linux-arm64/package.json'". The addon is now
+ compiled locally from the source shipped inside node-addon-system (src/flock.c)
+ against the bundled N-API headers, and installed to
+ bin/glibc/system.node plus bin/musl/system.node. It is a real arm64 N-API
+ shared object calling flock(2) directly; locking, EAGAIN contention and
+ release-then-relock were all verified on this machine.
