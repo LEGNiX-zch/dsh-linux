@@ -88,6 +88,16 @@ Grab the latest `.deb` from the [Releases](../../releases) page:
 deepseek-harness_0.2.1_arm64.deb
 ```
 
+Direct link for the current release:
+
+```
+https://github.com/LEGNiX-zch/dsh-linux/releases/download/v0.2.1/deepseek-harness_0.2.1_arm64.deb
+```
+
+```bash
+curl -LO https://github.com/LEGNiX-zch/dsh-linux/releases/download/v0.2.1/deepseek-harness_0.2.1_arm64.deb
+```
+
 **Always verify the checksum before installing:**
 
 ```bash
